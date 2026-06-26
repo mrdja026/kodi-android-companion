@@ -1,15 +1,17 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { SettingsProvider } from '@/context/SettingsContext';
 import AppTabs from '@/components/app-tabs';
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={DarkTheme}>
+        <SettingsProvider>
+          <AppTabs />
+        </SettingsProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
