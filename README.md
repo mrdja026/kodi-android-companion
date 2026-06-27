@@ -11,14 +11,28 @@ pnpm install
 npx expo run:android --variant release
 ```
 
-Configure the proxy IP and port in Settings (gear icon) — these persist across app restarts.
+Configure the proxy IP and port in Settings — these persist across app restarts.
 
-## Tabs
+## Features
 
-- **Volume** — Slider and +/-5 buttons to control Kodi volume
-- **Player** — Play/Pause/Stop controls
-- **Settings** (gear icon) — Proxy IP/port config with Test Connection
+### Tabs
+- **Now Playing** — Play/Pause/Stop transport controls, seek forward/backward 30s, volume slider with ± step buttons, current volume display
+- **Search** — Two modes: **Library** (search movies/TV shows by title) and **Files** (search and browse Kodi filesystem directories with play-by-path)
+- **Browse** — Browse full movie and TV show libraries; tap to view details
+- **Settings** — Proxy IP/port configuration with Test Connection, System commands (Shutdown, Reboot)
 
-## Known Issues
+### Navigation
+- **Movie / TV show details** — View metadata, tap Play to start playback and auto-navigate to Now Playing
+- **Season / Episode browser** — Browse seasons, tap an episode to play with auto-navigate
 
-- **Text legibility**: Dark theme colors need adjustment — some text is hard to read against the background. No code changes have been made to address this yet.
+### Theme
+- Light / Dark / System theme toggle
+- Persisted across restarts
+
+## Tech Stack
+
+- Expo SDK 54
+- Expo Router (file-based routing)
+- `expo-sqlite/kv-store` for config persistence
+- React Context for settings and theme state
+- Custom tab bar with 4 tabs

@@ -5,9 +5,22 @@ import { useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Card } from '@/components/card';
-import { useVolume } from '@/hooks/use-volume';
+import { CircularButton } from '@/components/circular-button';
+import { PlayIcon, PauseIcon, StopIcon } from '@/components/icons';
+import { useSettings } from '@/context/SettingsContext';
 import { useTheme } from '@/hooks/use-theme';
+import { useVolume } from '@/hooks/use-volume';
+import { playerPlay, playerPause, playerStop, playerSeekForward, playerSeekBackward, ApiError } from '@/services/api';
 import { Spacing } from '@/constants/theme';
+
+type PlayerAction = 'PLAY' | 'PAUSE' | 'STOP';
+type PlaybackStatus = 'Stopped' | 'Playing' | 'Paused';
+
+const STATUS_FOR_ACTION: Record<PlayerAction, PlaybackStatus> = {
+  PLAY: 'Playing',
+  PAUSE: 'Paused',
+  STOP: 'Stopped',
+};
 
 function TouchSlider({ value, onValueChange }: { value: number; onValueChange: (v: number) => void }) {
   const trackWidth = useRef(0);
@@ -73,33 +86,111 @@ function TouchSlider({ value, onValueChange }: { value: number; onValueChange: (
   );
 }
 
-export default function VolumeScreen() {
+export default function PlaybackScreen() {
   const theme = useTheme();
-  const { volume, loading, error, refresh, set, stepUp, stepDown } = useVolume();
+  const { proxyUrl } = useSettings();
+  const volumeCtrl = useVolume();
+  const [activeAction, setActiveAction] = useState<PlayerAction | null>(null);
+  const [status, setStatus] = useState<PlaybackStatus>('Stopped');
+  const [error, setError] = useState<string | null>(null);
+  const [seeking, setSeeking] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      refresh();
-    }, [refresh]),
+      setError(null);
+      volumeCtrl.refresh();
+    }, [volumeCtrl]),
   );
+
+  const handleAction = async (action: PlayerAction) => {
+    setActiveAction(action);
+    setError(null);
+    try {
+      if (action === 'PLAY') await playerPlay(proxyUrl);
+      else if (action === 'PAUSE') await playerPause(proxyUrl);
+      else await playerStop(proxyUrl);
+      setStatus(STATUS_FOR_ACTION[action]);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.detail : 'Cannot reach proxy');
+    } finally {
+      setActiveAction(null);
+    }
+  };
+
+  const handleSeek = async (direction: 'forward' | 'backward') => {
+    setSeeking(true);
+    setError(null);
+    try {
+      if (direction === 'forward') await playerSeekForward(proxyUrl, 30);
+      else await playerSeekBackward(proxyUrl, 30);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.detail : 'Seek failed');
+    } finally {
+      setSeeking(false);
+    }
+  };
 
   return (
     <ThemedView style={styles.container}>
       <View style={styles.content}>
-        <ThemedText style={styles.title}>Volume Control</ThemedText>
+        <ThemedText style={styles.title}>Now Playing</ThemedText>
 
         <Card style={styles.card}>
-          <TouchSlider value={volume} onValueChange={set} />
+          <View style={styles.buttonRow}>
+            <CircularButton
+              onPress={() => handleAction('PLAY')}
+              loading={activeAction === 'PLAY'}
+              accessibilityLabel="Play"
+            >
+              <PlayIcon size={24} color={theme.text} />
+            </CircularButton>
+            <CircularButton
+              onPress={() => handleAction('PAUSE')}
+              loading={activeAction === 'PAUSE'}
+              accessibilityLabel="Pause"
+            >
+              <PauseIcon size={22} color={theme.text} />
+            </CircularButton>
+            <CircularButton
+              onPress={() => handleAction('STOP')}
+              loading={activeAction === 'STOP'}
+              accessibilityLabel="Stop"
+            >
+              <StopIcon size={22} color={theme.text} />
+            </CircularButton>
+          </View>
+
+          <View style={styles.seekRow}>
+            <CircularButton
+              onPress={() => handleSeek('backward')}
+              loading={seeking}
+              accessibilityLabel="Seek back 30 seconds"
+            >
+              <ThemedText style={styles.seekIcon}>⏪</ThemedText>
+            </CircularButton>
+            <CircularButton
+              onPress={() => handleSeek('forward')}
+              loading={seeking}
+              accessibilityLabel="Seek forward 30 seconds"
+            >
+              <ThemedText style={styles.seekIcon}>⏩</ThemedText>
+            </CircularButton>
+          </View>
+
+          <ThemedText themeColor="textSecondary" style={styles.status}>
+            {status}
+          </ThemedText>
+
+          <View style={styles.divider} />
+
+          <TouchSlider value={volumeCtrl.volume} onValueChange={volumeCtrl.set} />
 
           <View style={styles.volumeRow}>
-            <ThemedText style={[styles.volumeNumber, { color: theme.accent }]}>{'' + volume}</ThemedText>
-            {loading && (
+            <ThemedText style={[styles.volumeNumber, { color: theme.accent }]}>{'' + volumeCtrl.volume}</ThemedText>
+            {volumeCtrl.loading && (
               <ActivityIndicator size="small" color={theme.accent} style={styles.loadingSpinner} />
             )}
           </View>
-          <ThemedText themeColor="textSecondary" style={styles.caption}>
-            Volume Level
-          </ThemedText>
 
           <View style={styles.stepRow}>
             <Pressable
@@ -107,10 +198,10 @@ export default function VolumeScreen() {
                 styles.stepButton,
                 { backgroundColor: theme.surfaceMuted },
                 pressed && { opacity: 0.6 },
-                (loading || volume <= 0) && { opacity: 0.4 },
+                (volumeCtrl.loading || volumeCtrl.volume <= 0) && { opacity: 0.4 },
               ]}
-              onPress={stepDown}
-              disabled={loading || volume <= 0}
+              onPress={volumeCtrl.stepDown}
+              disabled={volumeCtrl.loading || volumeCtrl.volume <= 0}
               accessibilityRole="button"
               accessibilityLabel="Decrease volume"
             >
@@ -122,10 +213,10 @@ export default function VolumeScreen() {
                 styles.stepButton,
                 { backgroundColor: theme.accent },
                 pressed && { opacity: 0.7 },
-                (loading || volume >= 100) && { opacity: 0.4 },
+                (volumeCtrl.loading || volumeCtrl.volume >= 100) && { opacity: 0.4 },
               ]}
-              onPress={stepUp}
-              disabled={loading || volume >= 100}
+              onPress={volumeCtrl.stepUp}
+              disabled={volumeCtrl.loading || volumeCtrl.volume >= 100}
               accessibilityRole="button"
               accessibilityLabel="Increase volume"
             >
@@ -137,6 +228,12 @@ export default function VolumeScreen() {
         {error && (
           <View style={[styles.errorBanner, { backgroundColor: theme.danger }]}>
             <ThemedText style={[styles.errorText, { color: theme.dangerOn }]}>{error}</ThemedText>
+          </View>
+        )}
+
+        {volumeCtrl.error && (
+          <View style={[styles.errorBanner, { backgroundColor: theme.danger }]}>
+            <ThemedText style={[styles.errorText, { color: theme.dangerOn }]}>{volumeCtrl.error}</ThemedText>
           </View>
         )}
       </View>
@@ -162,6 +259,27 @@ const styles = StyleSheet.create({
   card: {
     gap: Spacing.three,
     alignItems: 'stretch',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: Spacing.three,
+    justifyContent: 'center',
+  },
+  seekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+  },
+  seekIcon: {
+    fontSize: 24,
+  },
+  status: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    marginHorizontal: -Spacing.three,
   },
   sliderTrack: {
     height: 8,
@@ -200,11 +318,6 @@ const styles = StyleSheet.create({
   },
   loadingSpinner: {
     marginTop: -Spacing.four,
-  },
-  caption: {
-    textAlign: 'center',
-    fontSize: 13,
-    marginTop: -Spacing.two,
   },
   stepRow: {
     flexDirection: 'row',

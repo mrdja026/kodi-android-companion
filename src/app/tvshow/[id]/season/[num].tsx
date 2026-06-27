@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -17,6 +17,7 @@ export default function SeasonEpisodesScreen() {
   }>();
   const theme = useTheme();
   const { proxyUrl } = useSettings();
+  const router = useRouter();
 
   const [episodes, setEpisodes] = useState<EpisodeItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +48,7 @@ export default function SeasonEpisodesScreen() {
     setError(null);
     try {
       await playEpisode(proxyUrl, episodeId);
+      router.replace('/playback');
     } catch (e) {
       setError(e instanceof ApiError ? e.detail : 'Play failed');
     } finally {

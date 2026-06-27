@@ -3,11 +3,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tabs } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
-import { SpeakerIcon, PlayIcon, SearchIcon, MovieIcon, GearIcon } from '@/components/icons';
+import { PlayIcon, SearchIcon, MovieIcon, GearIcon } from '@/components/icons';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 
-type TabKey = 'index' | 'playback' | 'search' | 'browse' | 'settings';
+type TabKey = 'playback' | 'search' | 'browse' | 'settings';
 
 type TabRoute = { key: string; name: string };
 type TabBarProps = {
@@ -20,7 +20,6 @@ type TabBarProps = {
 };
 
 const TAB_META: Record<TabKey, { label: string }> = {
-  index: { label: 'Volume' },
   playback: { label: 'Playback' },
   search: { label: 'Search' },
   browse: { label: 'Browse' },
@@ -29,7 +28,6 @@ const TAB_META: Record<TabKey, { label: string }> = {
 
 function TabIcon({ name, color, focused }: { name: TabKey; color: string; focused: boolean }) {
   const size = focused ? 22 : 20;
-  if (name === 'index') return <SpeakerIcon size={size} color={color} />;
   if (name === 'playback') return <PlayIcon size={size} color={color} />;
   if (name === 'search') return <SearchIcon size={size} color={color} />;
   if (name === 'browse') return <MovieIcon size={size} color={color} />;
@@ -39,6 +37,9 @@ function TabIcon({ name, color, focused }: { name: TabKey; color: string; focuse
 function CustomTabBar({ state, descriptors, navigation }: TabBarProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+
+  const currentRoute = state.routes[state.index];
+  const currentIsKnown = currentRoute?.name in TAB_META;
 
   return (
     <View
@@ -52,8 +53,10 @@ function CustomTabBar({ state, descriptors, navigation }: TabBarProps) {
       ]}
     >
       {state.routes.map((route, index) => {
-        const focused = state.index === index;
-        const meta = TAB_META[route.name as TabKey] ?? { label: route.name };
+        if (!(route.name in TAB_META)) return null;
+
+        const meta = TAB_META[route.name as TabKey]!;
+        const focused = currentIsKnown && route.name === currentRoute.name;
         const color = focused ? theme.accent : theme.textSecondary;
         const { options } = descriptors[route.key];
         const accessibilityLabel = options.tabBarAccessibilityLabel ?? meta.label;
@@ -100,9 +103,9 @@ export default function AppTabs() {
   return (
     <Tabs
       screenOptions={{ headerShown: false }}
+      initialRouteName="playback"
       tabBar={(props) => <CustomTabBar {...(props as unknown as TabBarProps)} />}
     >
-      <Tabs.Screen name="index" options={{ title: 'Volume' }} />
       <Tabs.Screen name="playback" options={{ title: 'Playback' }} />
       <Tabs.Screen name="search" options={{ title: 'Search' }} />
       <Tabs.Screen name="browse" options={{ title: 'Browse' }} />

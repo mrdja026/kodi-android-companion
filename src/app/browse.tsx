@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
@@ -18,6 +18,8 @@ export default function BrowseScreen() {
   const [tvShows, setTvShows] = useState<TVShowItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [moviesCollapsed, setMoviesCollapsed] = useState(true);
+  const [tvShowsCollapsed, setTvShowsCollapsed] = useState(true);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -40,6 +42,8 @@ export default function BrowseScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      setMoviesCollapsed(true);
+      setTvShowsCollapsed(true);
       load();
     }, [load]),
   );
@@ -92,7 +96,7 @@ export default function BrowseScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         <ThemedText style={styles.heading}>Library</ThemedText>
 
         {error && (
@@ -103,28 +107,44 @@ export default function BrowseScreen() {
 
         {movies.length > 0 && (
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Movies ({movies.length})</ThemedText>
-            <FlatList
-              data={movies}
-              keyExtractor={(item) => `m-${item.movieid}`}
-              renderItem={renderMovie}
-              scrollEnabled={false}
-            />
+            <Pressable
+              onPress={() => setMoviesCollapsed((c) => !c)}
+              style={styles.sectionHeader}
+            >
+              <ThemedText style={styles.sectionTitle}>Movies</ThemedText>
+              <ThemedText style={styles.chevron}>{moviesCollapsed ? '▶' : '▼'}</ThemedText>
+            </Pressable>
+            {!moviesCollapsed && (
+              <FlatList
+                data={movies}
+                keyExtractor={(item) => `m-${item.movieid}`}
+                renderItem={renderMovie}
+                scrollEnabled={false}
+              />
+            )}
           </View>
         )}
 
         {tvShows.length > 0 && (
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>TV Shows ({tvShows.length})</ThemedText>
-            <FlatList
-              data={tvShows}
-              keyExtractor={(item) => `t-${item.tvshowid}`}
-              renderItem={renderTVShow}
-              scrollEnabled={false}
-            />
+            <Pressable
+              onPress={() => setTvShowsCollapsed((c) => !c)}
+              style={styles.sectionHeader}
+            >
+              <ThemedText style={styles.sectionTitle}>TV Shows</ThemedText>
+              <ThemedText style={styles.chevron}>{tvShowsCollapsed ? '▶' : '▼'}</ThemedText>
+            </Pressable>
+            {!tvShowsCollapsed && (
+              <FlatList
+                data={tvShows}
+                keyExtractor={(item) => `t-${item.tvshowid}`}
+                renderItem={renderTVShow}
+                scrollEnabled={false}
+              />
+            )}
           </View>
         )}
-      </View>
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -139,7 +159,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: Spacing.four,
     gap: Spacing.two,
   },
@@ -162,10 +182,18 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.two,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.two,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    marginTop: Spacing.two,
+  },
+  chevron: {
+    fontSize: 12,
   },
   item: {
     flexDirection: 'row',

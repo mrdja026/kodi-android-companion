@@ -30,6 +30,7 @@ export default function MovieDetailScreen() {
     setError(null);
     try {
       await playMovie(proxyUrl, Number(id));
+      router.replace('/playback');
     } catch (e) {
       setError(e instanceof ApiError ? e.detail : 'Play failed');
     } finally {

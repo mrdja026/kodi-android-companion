@@ -9,7 +9,9 @@ export type VolumeAction =
 export type PlayerAction =
   | { type: 'PLAY' }
   | { type: 'PAUSE' }
-  | { type: 'STOP' };
+  | { type: 'STOP' }
+  | { type: 'SEEK_FORWARD'; seconds: number }
+  | { type: 'SEEK_BACKWARD'; seconds: number };
 
 export type SystemAction =
   | { type: 'SHUTDOWN'; confirm: boolean }
@@ -206,6 +208,40 @@ export function playMovie(baseUrl: string, movieId: number): Promise<unknown> {
 
 export function playEpisode(baseUrl: string, episodeId: number): Promise<unknown> {
   return request(baseUrl, '/api/tvshows', { type: 'TV_PLAY_EPISODE', episodeId });
+}
+
+export interface FileItem {
+  file: string;
+  filetype: 'file' | 'directory';
+  label: string;
+  size?: number;
+  mimetype?: string;
+  thumbnail?: string;
+  lastmodified?: string;
+}
+
+export interface FilesResponse {
+  files: FileItem[];
+}
+
+export function searchTVShowFiles(baseUrl: string, query: string): Promise<FilesResponse> {
+  return request<FilesResponse>(baseUrl, '/api/tvshows', { type: 'TV_SEARCH_ALL', query });
+}
+
+export function listFilesDirectory(baseUrl: string, directory: string): Promise<FilesResponse> {
+  return request<FilesResponse>(baseUrl, '/api/files/directory', { directory, media: 'video' });
+}
+
+export function playerSeekForward(baseUrl: string, seconds: number): Promise<void> {
+  return request<void>(baseUrl, '/api/player', { type: 'SEEK_FORWARD', seconds });
+}
+
+export function playerSeekBackward(baseUrl: string, seconds: number): Promise<void> {
+  return request<void>(baseUrl, '/api/player', { type: 'SEEK_BACKWARD', seconds });
+}
+
+export function playerPlayFile(baseUrl: string, filePath: string): Promise<void> {
+  return request<void>(baseUrl, '/api/player', { type: 'PLAY', file: filePath });
 }
 
 export function scanMovies(baseUrl: string): Promise<unknown> {
