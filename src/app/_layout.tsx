@@ -1,15 +1,36 @@
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
 
 import { SettingsProvider } from '@/context/SettingsContext';
+import { ThemeProvider, useThemeMode } from '@/context/ThemeContext';
+import { AppHeader } from '@/components/app-header';
 import AppTabs from '@/components/app-tabs';
+import { useTheme } from '@/hooks/use-theme';
+
+function Shell() {
+  const { effective } = useThemeMode();
+  const theme = useTheme();
+  return (
+    <NavThemeProvider value={effective === 'dark' ? DarkTheme : DefaultTheme}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <AppHeader />
+        <View style={{ flex: 1 }}>
+          <AppTabs />
+        </View>
+      </View>
+      <StatusBar style={effective === 'dark' ? 'light' : 'dark'} />
+    </NavThemeProvider>
+  );
+}
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={DarkTheme}>
+      <ThemeProvider>
         <SettingsProvider>
-          <AppTabs />
+          <Shell />
         </SettingsProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

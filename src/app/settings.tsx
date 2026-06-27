@@ -1,45 +1,38 @@
 import { useState } from 'react';
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Card } from '@/components/card';
 import { useSettings } from '@/context/SettingsContext';
-import { testConnection } from '@/services/api';
-import { ApiError } from '@/services/api';
+import { testConnection, ApiError } from '@/services/api';
+import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 
+type ConnectionStatus = 'Not Connected' | 'Testing…' | 'Connected';
+
 export default function SettingsScreen() {
-  const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { proxyIp, proxyPort, setProxyIp, setProxyPort } = useSettings();
 
   const [ipDraft, setIpDraft] = useState(proxyIp);
   const [portDraft, setPortDraft] = useState(proxyPort);
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [status, setStatus] = useState<ConnectionStatus>('Not Connected');
+  const [detail, setDetail] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const host = ipDraft || '192.168.0.234';
   const port = portDraft || '5149';
   const previewUrl = `http://${host}:${port}`;
 
-  const handleTest = async () => {
-    setTesting(true);
-    setTestResult(null);
+  const handleConnect = async () => {
+    setStatus('Testing…');
+    setDetail(null);
     try {
       await testConnection(previewUrl);
-      setTestResult({ ok: true, msg: 'Connection successful!' });
+      setStatus('Connected');
     } catch (e) {
-      const msg = e instanceof ApiError ? e.detail : 'Cannot reach proxy';
-      setTestResult({ ok: false, msg });
-    } finally {
-      setTesting(false);
+      setStatus('Not Connected');
+      setDetail(e instanceof ApiError ? e.detail : 'Cannot reach proxy');
     }
   };
 
@@ -50,78 +43,94 @@ export default function SettingsScreen() {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const pillBg =
+    status === 'Connected'
+      ? theme.accent
+      : status === 'Testing…'
+        ? theme.surfaceMuted
+        : detail
+          ? theme.danger
+          : theme.surfaceMuted;
+  const pillFg = status === 'Connected' ? theme.accentOn : detail ? theme.dangerOn : theme.textSecondary;
+
   return (
     <ScrollView
       style={styles.scrollView}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: insets.top + Spacing.four, paddingBottom: insets.bottom + Spacing.four },
-      ]}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
     >
-      <ThemedText type="subtitle" style={styles.title}>
-        Proxy Settings
-      </ThemedText>
-      <ThemedText themeColor="textSecondary" style={styles.hint}>
-        Enter the IP address of the PC running the proxy. Device and PC must be on the same WiFi network.
-      </ThemedText>
+      <ThemedText style={styles.title}>Proxy Settings</ThemedText>
 
-      <ThemedView type="backgroundElement" style={styles.card}>
-        <ThemedText style={styles.label}>Proxy IP Address</ThemedText>
+      <Card style={styles.card}>
+        <ThemedText style={styles.label}>Proxy Host</ThemedText>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+          ]}
           value={ipDraft}
           onChangeText={setIpDraft}
           placeholder="192.168.0.100"
-          placeholderTextColor="#666"
+          placeholderTextColor={theme.textSecondary}
           keyboardType="numeric"
           autoCapitalize="none"
           autoCorrect={false}
         />
 
-        <ThemedText style={styles.label}>Proxy Port</ThemedText>
+        <ThemedText style={styles.label}>Port</ThemedText>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            { backgroundColor: theme.background, color: theme.text, borderColor: theme.border },
+          ]}
           value={portDraft}
           onChangeText={setPortDraft}
           placeholder="5149"
-          placeholderTextColor="#666"
+          placeholderTextColor={theme.textSecondary}
           keyboardType="number-pad"
           autoCapitalize="none"
           autoCorrect={false}
         />
 
-        <ThemedText themeColor="textSecondary" style={styles.preview}>
-          URL: {previewUrl}
-        </ThemedText>
-      </ThemedView>
-
-      <Pressable
-        style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-        onPress={handleTest}
-        disabled={testing}
-      >
-        <ThemedText style={styles.buttonText}>
-          {testing ? 'Testing...' : 'Test Connection'}
-        </ThemedText>
-      </Pressable>
-
-      {testResult && (
-        <ThemedView
-          type="backgroundElement"
-          style={[styles.resultBanner, testResult.ok ? styles.resultSuccess : styles.resultError]}
+        <Pressable
+          onPress={handleConnect}
+          disabled={status === 'Testing…'}
+          accessibilityRole="button"
+          accessibilityLabel="Connect"
+          style={({ pressed }) => [
+            styles.primaryButton,
+            { backgroundColor: theme.accent },
+            pressed && { opacity: 0.7 },
+            status === 'Testing…' && { opacity: 0.6 },
+          ]}
         >
-          <ThemedText>{testResult.msg}</ThemedText>
-        </ThemedView>
-      )}
+          <ThemedText style={[styles.primaryButtonText, { color: theme.accentOn }]}>Connect</ThemedText>
+        </Pressable>
 
-      <Pressable
-        style={({ pressed }) => [styles.button, styles.saveButton, pressed && styles.buttonPressed]}
-        onPress={handleSave}
-      >
-        <ThemedText style={styles.buttonText}>
-          {saved ? 'Saved!' : 'Save & Connect'}
-        </ThemedText>
-      </Pressable>
+        <View style={[styles.statusPill, { backgroundColor: pillBg }]}>
+          <ThemedText style={[styles.statusText, { color: pillFg }]}>{status}</ThemedText>
+        </View>
+        {detail && status === 'Not Connected' && (
+          <ThemedText themeColor="textSecondary" style={styles.detail}>
+            {detail}
+          </ThemedText>
+        )}
+
+        <Pressable
+          onPress={handleSave}
+          accessibilityRole="button"
+          accessibilityLabel="Save and continue"
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            { backgroundColor: theme.surfaceMuted },
+            pressed && { opacity: 0.7 },
+          ]}
+        >
+          <ThemedText style={[styles.secondaryButtonText, { color: theme.text }]}>
+            {saved ? 'Saved' : 'Save & Continue'}
+          </ThemedText>
+        </Pressable>
+      </Card>
     </ScrollView>
   );
 }
@@ -131,65 +140,64 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    flexGrow: 1,
+    justifyContent: 'center',
     paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.four,
     gap: Spacing.three,
   },
   title: {
+    fontSize: 18,
+    fontWeight: '700',
     textAlign: 'center',
-  },
-  hint: {
-    textAlign: 'center',
-    marginBottom: Spacing.two,
   },
   card: {
-    borderRadius: Spacing.three,
-    padding: Spacing.four,
     gap: Spacing.two,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     marginTop: Spacing.one,
   },
   input: {
-    backgroundColor: Platform.OS === 'android' ? '#1a1a1a' : '#1a1a1a',
-    color: '#ffffff',
-    borderRadius: Spacing.two,
+    borderRadius: 8,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#333',
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  preview: {
-    fontSize: 12,
-    marginTop: Spacing.one,
-  },
-  button: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: Spacing.two,
+  primaryButton: {
+    borderRadius: 10,
     paddingVertical: Spacing.three,
     alignItems: 'center',
+    marginTop: Spacing.three,
   },
-  saveButton: {
-    backgroundColor: '#1a6b3c',
-  },
-  buttonPressed: {
-    opacity: 0.7,
-  },
-  buttonText: {
+  primaryButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  resultBanner: {
-    borderRadius: Spacing.two,
-    padding: Spacing.three,
+  statusPill: {
+    alignSelf: 'stretch',
+    borderRadius: 8,
+    paddingVertical: Spacing.two,
     alignItems: 'center',
   },
-  resultSuccess: {
-    backgroundColor: '#1a6b3c',
+  statusText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
-  resultError: {
-    backgroundColor: '#6b1a1a',
+  detail: {
+    textAlign: 'center',
+    fontSize: 12,
+  },
+  secondaryButton: {
+    borderRadius: 10,
+    paddingVertical: Spacing.three,
+    alignItems: 'center',
+    marginTop: Spacing.one,
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

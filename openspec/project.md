@@ -6,10 +6,10 @@ Kodi Remote Control — An Android app (Expo SDK 54) that controls Kodi media ce
 ## Tech Stack
 - TypeScript, React 19, React Native 0.81
 - Expo SDK 54 with Expo Router v6 (file-based routing)
-- NativeTabs for bottom navigation (expo-router/unstable-native-tabs)
+- Custom JS bottom tab bar (expo-router `Tabs` + `tabBar` render prop)
 - react-native-gesture-handler + react-native-reanimated (custom gesture slider)
-- expo-sqlite/kv-store for persistent settings
-- expo-symbols for icons (SF Symbols on iOS / Material icons on Android)
+- expo-sqlite/kv-store for persistent settings (proxy config, theme mode)
+- View-composed icons (zero icon-font dependency)
 
 ## Project Conventions
 
@@ -39,9 +39,10 @@ Kodi Remote Control — An Android app (Expo SDK 54) that controls Kodi media ce
 
 ## Important Constraints
 - Android only
-- Dark theme forced (userInterfaceStyle: "dark")
+- Theme is user-controlled (light | dark | system); default `system`, persisted via `expo-sqlite/kv-store` under `themeMode`
 - 5-second request timeout
 - No hardcoded proxy addresses
+- No hardcoded hex colours in screen files — use tokens from `Colors` in `src/constants/theme.ts`
 
 ## External Dependencies
 - Kodi REST proxy (port 5149, local network)

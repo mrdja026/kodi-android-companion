@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "Kodi Remote",
+    "name": "Kodi Companion",
     "slug": "kodi-remote",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kodiremote",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
     },

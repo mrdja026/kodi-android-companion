@@ -1,15 +1,17 @@
 import { useCallback, useRef } from 'react';
 import { Pressable, StyleSheet, View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Card } from '@/components/card';
 import { useVolume } from '@/hooks/use-volume';
+import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 
 function TouchSlider({ value, onValueChange }: { value: number; onValueChange: (v: number) => void }) {
   const trackWidth = useRef(0);
+  const theme = useTheme();
 
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     trackWidth.current = e.nativeEvent.layout.width;
@@ -29,21 +31,21 @@ function TouchSlider({ value, onValueChange }: { value: number; onValueChange: (
 
   return (
     <View
-      style={styles.sliderTrack}
+      style={[styles.sliderTrack, { backgroundColor: theme.surfaceMuted }]}
       onLayout={onLayout}
       onStartShouldSetResponder={() => true}
       onMoveShouldSetResponder={() => true}
       onResponderGrant={resolve}
       onResponderMove={resolve}
     >
-      <View style={[styles.sliderFill, { width: `${pct}%` as unknown as number }]} />
-      <View style={[styles.sliderThumb, { left: `${pct}%` as unknown as number }]} />
+      <View style={[styles.sliderFill, { width: `${pct}%` as unknown as number, backgroundColor: theme.accent }]} />
+      <View style={[styles.sliderThumb, { left: `${pct}%` as unknown as number, backgroundColor: theme.text }]} />
     </View>
   );
 }
 
 export default function VolumeScreen() {
-  const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { volume, loading, error, refresh, set, stepUp, stepDown } = useVolume();
 
   useFocusEffect(
@@ -54,51 +56,54 @@ export default function VolumeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View style={[styles.content, { paddingTop: insets.top }]}>
-        <ThemedText style={styles.title}>VOLUME</ThemedText>
+      <View style={styles.content}>
+        <ThemedText style={styles.title}>Volume Control</ThemedText>
 
-        <View style={styles.volumeDisplay}>
-          <ThemedText style={styles.volumeNumber}>{'' + volume}</ThemedText>
-        </View>
-
-        <View style={styles.sliderContainer}>
+        <Card style={styles.card}>
           <TouchSlider value={volume} onValueChange={set} />
-          <View style={styles.sliderLabels}>
-            <ThemedText themeColor="textSecondary" style={styles.sliderLabel}>0</ThemedText>
-            <ThemedText themeColor="textSecondary" style={styles.sliderLabel}>100</ThemedText>
-          </View>
-        </View>
 
-        <View style={styles.stepRow}>
-          <Pressable
-            style={({ pressed }) => [styles.stepButton, pressed && styles.stepPressed]}
-            onPress={stepDown}
-            disabled={loading || volume <= 0}
-          >
-            <ThemedText style={styles.stepIcon}>-</ThemedText>
-            <ThemedText style={styles.stepValue}>5</ThemedText>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [styles.stepButton, styles.stepButtonUp, pressed && styles.stepPressed]}
-            onPress={stepUp}
-            disabled={loading || volume >= 100}
-          >
-            <ThemedText style={styles.stepIcon}>+</ThemedText>
-            <ThemedText style={styles.stepValue}>5</ThemedText>
-          </Pressable>
-        </View>
-
-        {loading && (
-          <ThemedText themeColor="textSecondary" style={styles.status}>
-            Updating...
+          <ThemedText style={[styles.volumeNumber, { color: theme.accent }]}>{'' + volume}</ThemedText>
+          <ThemedText themeColor="textSecondary" style={styles.caption}>
+            Volume Level
           </ThemedText>
-        )}
+
+          <View style={styles.stepRow}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.stepButton,
+                { backgroundColor: theme.surfaceMuted },
+                pressed && { opacity: 0.6 },
+                (loading || volume <= 0) && { opacity: 0.4 },
+              ]}
+              onPress={stepDown}
+              disabled={loading || volume <= 0}
+              accessibilityRole="button"
+              accessibilityLabel="Decrease volume"
+            >
+              <ThemedText style={[styles.stepIcon, { color: theme.text }]}>−</ThemedText>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.stepButton,
+                { backgroundColor: theme.accent },
+                pressed && { opacity: 0.7 },
+                (loading || volume >= 100) && { opacity: 0.4 },
+              ]}
+              onPress={stepUp}
+              disabled={loading || volume >= 100}
+              accessibilityRole="button"
+              accessibilityLabel="Increase volume"
+            >
+              <ThemedText style={[styles.stepIcon, { color: theme.accentOn }]}>+</ThemedText>
+            </Pressable>
+          </View>
+        </Card>
 
         {error && (
-          <ThemedView style={styles.errorBanner}>
-            <ThemedText style={styles.errorText}>{error}</ThemedText>
-          </ThemedView>
+          <View style={[styles.errorBanner, { backgroundColor: theme.danger }]}>
+            <ThemedText style={[styles.errorText, { color: theme.dangerOn }]}>{error}</ThemedText>
+          </View>
         )}
       </View>
     </ThemedView>
@@ -112,101 +117,74 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: Spacing.five,
-    gap: Spacing.four,
+    paddingHorizontal: Spacing.four,
+    gap: Spacing.three,
   },
   title: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     textAlign: 'center',
-    letterSpacing: 4,
-    opacity: 0.4,
   },
-  volumeDisplay: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  volumeNumber: {
-    fontSize: 96,
-    fontWeight: '200',
-    lineHeight: 110,
-  },
-  sliderContainer: {
-    gap: Spacing.one,
-    paddingHorizontal: 4,
+  card: {
+    gap: Spacing.three,
+    alignItems: 'stretch',
   },
   sliderTrack: {
-    height: 48,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
+    height: 8,
+    borderRadius: 4,
     justifyContent: 'center',
     overflow: 'visible',
     position: 'relative',
+    marginVertical: Spacing.two,
   },
   sliderFill: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: '#1a6b3c',
-    borderRadius: 8,
+    borderRadius: 4,
   },
   sliderThumb: {
     position: 'absolute',
-    width: 6,
-    height: 32,
-    backgroundColor: '#fff',
-    borderRadius: 3,
-    marginLeft: -3,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    marginLeft: -9,
+    top: -5,
   },
-  sliderLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 2,
+  volumeNumber: {
+    fontSize: 64,
+    fontWeight: '700',
+    lineHeight: 70,
+    textAlign: 'center',
   },
-  sliderLabel: {
-    fontSize: 12,
+  caption: {
+    textAlign: 'center',
+    fontSize: 13,
+    marginTop: -Spacing.two,
   },
   stepRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.four,
-    paddingTop: Spacing.two,
+    gap: Spacing.two,
+    marginTop: Spacing.two,
   },
   stepButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.one,
-    backgroundColor: '#2a2a2a',
-    borderRadius: Spacing.two,
+    flex: 1,
+    borderRadius: 10,
     paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.five,
-    minWidth: 110,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  stepButtonUp: {
-    backgroundColor: '#1a6b3c',
-  },
-  stepPressed: {
-    opacity: 0.6,
-  },
   stepIcon: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
   },
-  stepValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    opacity: 0.7,
-  },
-  status: {
-    textAlign: 'center',
-    fontSize: 14,
-  },
   errorBanner: {
-    borderRadius: Spacing.two,
+    borderRadius: 10,
     padding: Spacing.three,
-    backgroundColor: '#6b1a1a',
+    alignSelf: 'center',
+    maxWidth: 360,
+    width: '100%',
   },
   errorText: {
     textAlign: 'center',

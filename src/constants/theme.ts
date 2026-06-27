@@ -1,26 +1,37 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import '@/global.css';
 
 import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#0b1115',
+    background: '#f5f7fa',
+    backgroundElement: '#ffffff',
+    backgroundSelected: '#e6ebf1',
+    textSecondary: '#5a6675',
+    accent: '#0891b2',
+    accentOn: '#ffffff',
+    accentMuted: '#a5e9f5',
+    surface: '#ffffff',
+    surfaceMuted: '#e6ebf1',
+    border: '#d3dae3',
+    danger: '#dc2626',
+    dangerOn: '#ffffff',
   },
   dark: {
     text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    background: '#0b1115',
+    backgroundElement: '#161c22',
+    backgroundSelected: '#1f2731',
+    textSecondary: '#8a94a4',
+    accent: '#22d3ee',
+    accentOn: '#0b1115',
+    accentMuted: '#155e75',
+    surface: '#161c22',
+    surfaceMuted: '#1f2731',
+    border: '#2a3340',
+    danger: '#ef4444',
+    dangerOn: '#ffffff',
   },
 } as const;
 
@@ -28,13 +39,9 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
@@ -63,3 +70,4 @@ export const Spacing = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+export const CardMaxWidth = 360;
