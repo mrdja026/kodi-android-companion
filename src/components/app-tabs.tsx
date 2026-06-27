@@ -3,11 +3,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tabs } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
-import { SpeakerIcon, PlayIcon, GearIcon } from '@/components/icons';
+import { SpeakerIcon, PlayIcon, SearchIcon, MovieIcon, GearIcon } from '@/components/icons';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 
-type TabKey = 'index' | 'playback' | 'settings';
+type TabKey = 'index' | 'playback' | 'search' | 'browse' | 'settings';
 
 type TabRoute = { key: string; name: string };
 type TabBarProps = {
@@ -22,6 +22,8 @@ type TabBarProps = {
 const TAB_META: Record<TabKey, { label: string }> = {
   index: { label: 'Volume' },
   playback: { label: 'Playback' },
+  search: { label: 'Search' },
+  browse: { label: 'Browse' },
   settings: { label: 'Settings' },
 };
 
@@ -29,6 +31,8 @@ function TabIcon({ name, color, focused }: { name: TabKey; color: string; focuse
   const size = focused ? 22 : 20;
   if (name === 'index') return <SpeakerIcon size={size} color={color} />;
   if (name === 'playback') return <PlayIcon size={size} color={color} />;
+  if (name === 'search') return <SearchIcon size={size} color={color} />;
+  if (name === 'browse') return <MovieIcon size={size} color={color} />;
   return <GearIcon size={size} color={color} />;
 }
 
@@ -100,6 +104,8 @@ export default function AppTabs() {
     >
       <Tabs.Screen name="index" options={{ title: 'Volume' }} />
       <Tabs.Screen name="playback" options={{ title: 'Playback' }} />
+      <Tabs.Screen name="search" options={{ title: 'Search' }} />
+      <Tabs.Screen name="browse" options={{ title: 'Browse' }} />
       <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
     </Tabs>
   );

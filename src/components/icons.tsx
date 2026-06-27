@@ -105,6 +105,72 @@ export function SpeakerIcon({ size = 24, color }: IconProps) {
   );
 }
 
+export function SearchIcon({ size = 22, color }: IconProps) {
+  const lens = size * 0.48;
+  const handleLen = size * 0.44;
+  const handleThick = Math.max(2, size * 0.1);
+  return (
+    <View style={[styles.iconWrap, { width: size, height: size }]}>
+      <View
+        style={{
+          width: lens,
+          height: lens,
+          borderRadius: lens / 2,
+          borderWidth: handleThick,
+          borderColor: color,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          width: handleLen,
+          height: handleThick,
+          backgroundColor: color,
+          borderRadius: handleThick / 2,
+          bottom: size * 0.08,
+          right: size * 0.04,
+          transform: [{ rotate: '-45deg' }],
+        }}
+      />
+    </View>
+  );
+}
+
+export function MovieIcon({ size = 22, color }: IconProps) {
+  const w = size * 0.8;
+  const h = size * 0.6;
+  const playSize = size * 0.22;
+  return (
+    <View style={[styles.iconWrap, { width: size, height: size }]}>
+      <View
+        style={{
+          width: w,
+          height: h,
+          borderRadius: 3,
+          borderWidth: 2,
+          borderColor: color,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <View
+          style={{
+            width: 0,
+            height: 0,
+            borderTopWidth: playSize * 0.5,
+            borderBottomWidth: playSize * 0.5,
+            borderLeftWidth: playSize,
+            borderTopColor: 'transparent',
+            borderBottomColor: 'transparent',
+            borderLeftColor: color,
+            marginLeft: playSize * 0.15,
+          }}
+        />
+      </View>
+    </View>
+  );
+}
+
 export function GearIcon({ size = 24, color }: IconProps) {
   const ring = size * 0.78;
   const ringBorder = Math.max(2, size * 0.12);

@@ -1,17 +1,14 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { useSettings } from '@/context/SettingsContext';
-import { getVolume, setVolume, volumeUp, volumeDown } from '@/services/api';
-import { ApiError } from '@/services/api';
+import { getVolume, setVolume, volumeUp, volumeDown, ApiError } from '@/services/api';
 
-const STEP = 5;
-const DEBOUNCE_MS = 200;
+const STEP = 10;
 
 export function useVolume() {
   const { proxyUrl } = useSettings();
   const [volume, setVolumeState] = useState(50);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -26,29 +23,21 @@ export function useVolume() {
     }
   }, [proxyUrl]);
 
-  const set = useCallback(
-    async (level: number) => {
-      setVolumeState(level);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(async () => {
-        setError(null);
-        try {
-          const v = await setVolume(proxyUrl, level);
-          setVolumeState(v);
-        } catch (e) {
-          setError(e instanceof ApiError ? e.detail : 'Cannot reach proxy');
-        }
-      }, DEBOUNCE_MS);
-    },
-    [proxyUrl],
-  );
+  const set = useCallback(async (level: number) => {
+    setVolumeState(level);
+    try {
+      await setVolume(proxyUrl, level);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.detail : 'Cannot reach proxy');
+    }
+  }, [proxyUrl]);
 
   const stepUp = useCallback(async () => {
     setError(null);
     setLoading(true);
+    setVolumeState(prev => Math.min(100, prev + STEP));
     try {
-      const v = await volumeUp(proxyUrl, STEP);
-      setVolumeState(v);
+      await volumeUp(proxyUrl, STEP);
     } catch (e) {
       setError(e instanceof ApiError ? e.detail : 'Cannot reach proxy');
     } finally {
@@ -59,9 +48,9 @@ export function useVolume() {
   const stepDown = useCallback(async () => {
     setError(null);
     setLoading(true);
+    setVolumeState(prev => Math.max(0, prev - STEP));
     try {
-      const v = await volumeDown(proxyUrl, STEP);
-      setVolumeState(v);
+      await volumeDown(proxyUrl, STEP);
     } catch (e) {
       setError(e instanceof ApiError ? e.detail : 'Cannot reach proxy');
     } finally {

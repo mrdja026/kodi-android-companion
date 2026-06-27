@@ -1,5 +1,5 @@
-import { useCallback, useRef } from 'react';
-import { Pressable, StyleSheet, View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
@@ -11,23 +11,50 @@ import { Spacing } from '@/constants/theme';
 
 function TouchSlider({ value, onValueChange }: { value: number; onValueChange: (v: number) => void }) {
   const trackWidth = useRef(0);
+  const [dragging, setDragging] = useState(false);
+  const [gestureValue, setGestureValue] = useState(value);
   const theme = useTheme();
 
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     trackWidth.current = e.nativeEvent.layout.width;
   }, []);
 
-  const resolve = useCallback(
+  const resolvePct = useCallback((e: GestureResponderEvent) => {
+    if (trackWidth.current <= 0) return 0;
+    const x = e.nativeEvent.locationX;
+    return Math.max(0, Math.min(100, Math.round((x / trackWidth.current) * 100)));
+  }, []);
+
+  const onGrant = useCallback(
     (e: GestureResponderEvent) => {
-      if (trackWidth.current <= 0) return;
-      const x = e.nativeEvent.locationX;
-      const pct = Math.max(0, Math.min(100, Math.round((x / trackWidth.current) * 100)));
-      onValueChange(pct);
+      setDragging(true);
+      setGestureValue(resolvePct(e));
     },
-    [onValueChange],
+    [resolvePct],
   );
 
-  const pct = Math.max(0, Math.min(100, value));
+  const onMove = useCallback(
+    (e: GestureResponderEvent) => {
+      setGestureValue(resolvePct(e));
+    },
+    [resolvePct],
+  );
+
+  const onRelease = useCallback(
+    (e: GestureResponderEvent) => {
+      const pct = resolvePct(e);
+      setDragging(false);
+      setGestureValue(pct);
+      onValueChange(pct);
+    },
+    [resolvePct, onValueChange],
+  );
+
+  const onTerminate = useCallback(() => {
+    setDragging(false);
+  }, []);
+
+  const pct = Math.max(0, Math.min(100, dragging ? gestureValue : value));
 
   return (
     <View
@@ -35,8 +62,10 @@ function TouchSlider({ value, onValueChange }: { value: number; onValueChange: (
       onLayout={onLayout}
       onStartShouldSetResponder={() => true}
       onMoveShouldSetResponder={() => true}
-      onResponderGrant={resolve}
-      onResponderMove={resolve}
+      onResponderGrant={onGrant}
+      onResponderMove={onMove}
+      onResponderRelease={onRelease}
+      onResponderTerminate={onTerminate}
     >
       <View style={[styles.sliderFill, { width: `${pct}%` as unknown as number, backgroundColor: theme.accent }]} />
       <View style={[styles.sliderThumb, { left: `${pct}%` as unknown as number, backgroundColor: theme.text }]} />
@@ -62,7 +91,12 @@ export default function VolumeScreen() {
         <Card style={styles.card}>
           <TouchSlider value={volume} onValueChange={set} />
 
-          <ThemedText style={[styles.volumeNumber, { color: theme.accent }]}>{'' + volume}</ThemedText>
+          <View style={styles.volumeRow}>
+            <ThemedText style={[styles.volumeNumber, { color: theme.accent }]}>{'' + volume}</ThemedText>
+            {loading && (
+              <ActivityIndicator size="small" color={theme.accent} style={styles.loadingSpinner} />
+            )}
+          </View>
           <ThemedText themeColor="textSecondary" style={styles.caption}>
             Volume Level
           </ThemedText>
@@ -152,11 +186,20 @@ const styles = StyleSheet.create({
     marginLeft: -9,
     top: -5,
   },
+  volumeRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
   volumeNumber: {
     fontSize: 64,
     fontWeight: '700',
     lineHeight: 70,
     textAlign: 'center',
+  },
+  loadingSpinner: {
+    marginTop: -Spacing.four,
   },
   caption: {
     textAlign: 'center',

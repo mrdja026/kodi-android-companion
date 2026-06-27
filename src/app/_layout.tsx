@@ -1,13 +1,13 @@
-import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@react-navigation/native';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { SettingsProvider } from '@/context/SettingsContext';
 import { ThemeProvider, useThemeMode } from '@/context/ThemeContext';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@react-navigation/native';
 import { AppHeader } from '@/components/app-header';
-import AppTabs from '@/components/app-tabs';
 import { useTheme } from '@/hooks/use-theme';
+import { View } from 'react-native';
 
 function Shell() {
   const { effective } = useThemeMode();
@@ -17,7 +17,12 @@ function Shell() {
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <AppHeader />
         <View style={{ flex: 1 }}>
-          <AppTabs />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="movie/[id]" />
+            <Stack.Screen name="tvshow/[id]" />
+            <Stack.Screen name="tvshow/[id]/season/[num]" />
+          </Stack>
         </View>
       </View>
       <StatusBar style={effective === 'dark' ? 'light' : 'dark'} />

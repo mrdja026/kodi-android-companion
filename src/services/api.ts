@@ -75,8 +75,11 @@ async function request<T>(baseUrl: string, path: string, body: unknown): Promise
   }
 }
 
-export function getVolume(baseUrl: string): Promise<number> {
-  return request<number>(baseUrl, '/api/volume', { type: 'GET' });
+export async function getVolume(baseUrl: string): Promise<number> {
+  const res = await request<number | { volume: number }>(
+    baseUrl, '/api/volume', { type: 'GET' }
+  );
+  return typeof res === 'number' ? res : res.volume;
 }
 
 export function setVolume(baseUrl: string, level: number): Promise<number> {
@@ -105,4 +108,110 @@ export function playerStop(baseUrl: string): Promise<void> {
 
 export function testConnection(baseUrl: string): Promise<boolean> {
   return getVolume(baseUrl).then(() => true);
+}
+
+/* ---- Media Library Types & Functions ---- */
+
+export interface MovieItem {
+  movieid: number;
+  title: string;
+  year: number;
+  genre?: string[];
+  runtime?: number;
+  thumbnail?: string;
+  file?: string;
+}
+
+export interface TVShowItem {
+  tvshowid: number;
+  title: string;
+  year: number;
+  genre?: string[];
+  rating?: number;
+  thumbnail?: string;
+  file?: string;
+}
+
+export interface SeasonItem {
+  season: number;
+  thumbnail?: string;
+  tvshowid: number;
+}
+
+export interface EpisodeItem {
+  episodeid: number;
+  title: string;
+  season: number;
+  episode: number;
+  runtime?: number;
+  thumbnail?: string;
+  file?: string;
+  tvshowid?: number;
+}
+
+export interface Limits {
+  start: number;
+  end: number;
+}
+
+export interface MoviesResponse {
+  limits: Limits;
+  movies: MovieItem[];
+}
+
+export interface TVShowsResponse {
+  limits: Limits;
+  tvshows: TVShowItem[];
+}
+
+export interface SeasonsResponse {
+  limits: Limits;
+  seasons: SeasonItem[];
+}
+
+export interface EpisodesResponse {
+  limits: Limits;
+  episodes: EpisodeItem[];
+}
+
+export function searchMovies(baseUrl: string, query: string): Promise<MoviesResponse> {
+  return request<MoviesResponse>(baseUrl, '/api/movies', { type: 'SEARCH', query });
+}
+
+export function searchTVShows(baseUrl: string, query: string): Promise<TVShowsResponse> {
+  return request<TVShowsResponse>(baseUrl, '/api/tvshows', { type: 'TV_SEARCH', query });
+}
+
+export function listMovies(baseUrl: string, start?: number, end?: number): Promise<MoviesResponse> {
+  return request<MoviesResponse>(baseUrl, '/api/movies', { type: 'LIST', start, end });
+}
+
+export function listTVShows(baseUrl: string, start?: number, end?: number): Promise<TVShowsResponse> {
+  return request<TVShowsResponse>(baseUrl, '/api/tvshows', { type: 'TV_LIST', start, end });
+}
+
+export function getSeasons(baseUrl: string, tvshowId: number): Promise<SeasonsResponse> {
+  return request<SeasonsResponse>(baseUrl, '/api/tvshows', { type: 'TV_SEASONS', tvshowId });
+}
+
+export function getEpisodes(baseUrl: string, tvshowId: number, season?: number): Promise<EpisodesResponse> {
+  return request<EpisodesResponse>(baseUrl, '/api/tvshows', {
+    type: 'TV_EPISODES', tvshowId, season
+  });
+}
+
+export function playMovie(baseUrl: string, movieId: number): Promise<unknown> {
+  return request(baseUrl, '/api/movies', { type: 'PLAY_MOVIE', movieId });
+}
+
+export function playEpisode(baseUrl: string, episodeId: number): Promise<unknown> {
+  return request(baseUrl, '/api/tvshows', { type: 'TV_PLAY_EPISODE', episodeId });
+}
+
+export function scanMovies(baseUrl: string): Promise<unknown> {
+  return request(baseUrl, '/api/movies', { type: 'SCAN_MOVIES' });
+}
+
+export function scanTV(baseUrl: string): Promise<unknown> {
+  return request(baseUrl, '/api/movies', { type: 'SCAN_TV' });
 }

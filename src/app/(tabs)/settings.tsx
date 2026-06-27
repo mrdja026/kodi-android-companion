@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/card';
 import { useSettings } from '@/context/SettingsContext';
-import { testConnection, ApiError } from '@/services/api';
+import { testConnection, scanMovies, scanTV, ApiError } from '@/services/api';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -12,13 +12,17 @@ type ConnectionStatus = 'Not Connected' | 'Testing…' | 'Connected';
 
 export default function SettingsScreen() {
   const theme = useTheme();
-  const { proxyIp, proxyPort, setProxyIp, setProxyPort } = useSettings();
+  const { proxyIp, proxyPort, setProxyIp, setProxyPort, proxyUrl } = useSettings();
 
   const [ipDraft, setIpDraft] = useState(proxyIp);
   const [portDraft, setPortDraft] = useState(proxyPort);
   const [status, setStatus] = useState<ConnectionStatus>('Not Connected');
   const [detail, setDetail] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  const [scanMovieLoading, setScanMovieLoading] = useState(false);
+  const [scanTVLoading, setScanTVLoading] = useState(false);
+  const [scanResult, setScanResult] = useState<string | null>(null);
 
   const host = ipDraft || '192.168.0.234';
   const port = portDraft || '5149';
@@ -41,6 +45,32 @@ export default function SettingsScreen() {
     setProxyPort(portDraft);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleScanMovies = async () => {
+    setScanMovieLoading(true);
+    setScanResult(null);
+    try {
+      await scanMovies(proxyUrl);
+      setScanResult('Scan complete');
+    } catch (e) {
+      setScanResult(e instanceof ApiError ? e.detail : 'Scan failed');
+    } finally {
+      setScanMovieLoading(false);
+    }
+  };
+
+  const handleScanTV = async () => {
+    setScanTVLoading(true);
+    setScanResult(null);
+    try {
+      await scanTV(proxyUrl);
+      setScanResult('Scan complete');
+    } catch (e) {
+      setScanResult(e instanceof ApiError ? e.detail : 'Scan failed');
+    } finally {
+      setScanTVLoading(false);
+    }
   };
 
   const pillBg =
@@ -131,6 +161,57 @@ export default function SettingsScreen() {
           </ThemedText>
         </Pressable>
       </Card>
+
+      <ThemedText style={[styles.title, { marginTop: Spacing.three }]}>Library Scan</ThemedText>
+
+      <Card style={styles.card}>
+        <Pressable
+          onPress={handleScanMovies}
+          disabled={scanMovieLoading}
+          accessibilityRole="button"
+          accessibilityLabel="Scan movies"
+          style={({ pressed }) => [
+            styles.scanButton,
+            { backgroundColor: theme.accent },
+            pressed && { opacity: 0.7 },
+            scanMovieLoading && { opacity: 0.6 },
+          ]}
+        >
+          {scanMovieLoading ? (
+            <ActivityIndicator size="small" color={theme.accentOn} />
+          ) : (
+            <ThemedText style={[styles.scanButtonText, { color: theme.accentOn }]}>Scan Movies</ThemedText>
+          )}
+        </Pressable>
+
+        <Pressable
+          onPress={handleScanTV}
+          disabled={scanTVLoading}
+          accessibilityRole="button"
+          accessibilityLabel="Scan TV shows"
+          style={({ pressed }) => [
+            styles.scanButton,
+            { backgroundColor: theme.surfaceMuted },
+            pressed && { opacity: 0.7 },
+            scanTVLoading && { opacity: 0.6 },
+          ]}
+        >
+          {scanTVLoading ? (
+            <ActivityIndicator size="small" color={theme.text} />
+          ) : (
+            <ThemedText style={[styles.scanButtonText, { color: theme.text }]}>Scan TV Shows</ThemedText>
+          )}
+        </Pressable>
+
+        {scanResult && (
+          <ThemedText
+            themeColor="textSecondary"
+            style={styles.detail}
+          >
+            {scanResult}
+          </ThemedText>
+        )}
+      </Card>
     </ScrollView>
   );
 }
@@ -199,5 +280,14 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  scanButton: {
+    borderRadius: 10,
+    paddingVertical: Spacing.three,
+    alignItems: 'center',
+  },
+  scanButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

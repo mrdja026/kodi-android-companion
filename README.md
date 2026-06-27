@@ -21,5 +21,4 @@ Configure the proxy IP and port in Settings (gear icon) — these persist across
 
 ## Known Issues
 
-- **Volume screen**: On load, the volume label briefly shows `[Object Object]` before the correct value appears. The slider still works after.
 - **Text legibility**: Dark theme colors need adjustment — some text is hard to read against the background. No code changes have been made to address this yet.
